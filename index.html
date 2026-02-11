@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Non Verbale - Prise de Connaissance</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --radius: 12px;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) { main { grid-template-columns: 1fr; } }
+
+        /* Section Vidéo */
+        .video-section { display: flex; flex-direction: column; gap: 1.5rem; position: relative; }
+
+        .video-container {
+            background-color: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #liveVideo { transform: scaleX(-1); }
+
+        /* Overlay d'enregistrement (petit point rouge) */
+        .overlay-status {
+            position: absolute; top: 1rem; right: 1rem;
+            display: flex; gap: 0.5rem; align-items: center;
+            background: rgba(0,0,0,0.6); padding: 0.5rem 1rem;
+            border-radius: 20px; font-size: 0.875rem; font-weight: 600;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .overlay-status.visible { opacity: 1; }
+        .rec-dot { width: 10px; height: 10px; background-color: var(--danger); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Overlay de préparation (Compte à rebours) */
+        #prepOverlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: var(--radius);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #prepOverlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .instruction-text {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            max-width: 80%;
+        }
+
+        .countdown-number {
+            font-size: 8rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        /* Onglets */
+        .tabs { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .tab-btn {
+            background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-muted); padding: 0.5rem 1.5rem; border-radius: 20px;
+            cursor: pointer; transition: all 0.2s; font-weight: 500;
+        }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Contrôles */
+        .controls {
+            display: flex; gap: 1rem; flex-wrap: wrap; padding: 1.5rem;
+            background: var(--bg-card); border-radius: var(--radius);
+            align-items: center; justify-content: center;
+        }
+        button {
+            padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600;
+            cursor: pointer; transition: transform 0.1s, background-color 0.2s;
+            display: flex; align-items: center; gap: 0.5rem; font-family: inherit;
+        }
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+        .btn-record { background-color: var(--danger); color: white; }
+        .btn-record:hover { background-color: #dc2626; }
+        .btn-record.recording { background-color: var(--bg-card); border: 2px solid var(--danger); color: var(--danger); }
+
+        .btn-stop { background-color: var(--text-muted); color: white; }
+        .btn-stop:hover { background-color: #64748b; }
+
+        .btn-download { background-color: var(--success); color: white; }
+        .btn-download:hover { background-color: #16a34a; }
+
+        .btn-mute { background-color: var(--bg-card); border: 1px solid rgba(255,255,255,0.2); color: var(--text-main); }
+        .btn-mute.muted { background-color: var(--primary); border-color: var(--primary); }
+
+        /* Instructions */
+        .instructions-card {
+            background: var(--bg-card); padding: 2rem; border-radius: var(--radius);
+            border-left: 4px solid var(--primary); box-shadow: var(--shadow); height: fit-content;
+        }
+        .instructions-card h2 { font-size: 1.25rem; margin-bottom: 1rem; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
+        .instructions-card h3 { font-size: 1rem; color: var(--primary); margin-top: 1.5rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .checklist { list-style: none; }
+        .checklist li { position: relative; padding-left: 1.5rem; margin-bottom: 0.75rem; color: var(--text-muted); font-size: 0.95rem; }
+        .checklist li::before { content: "•"; color: var(--primary); position: absolute; left: 0; font-weight: bold; }
+
+        /* Toast */
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff;
+            text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000;
+            bottom: 30px; left: 50%; transform: translateX(-50%); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        .hidden { display: none !important; }
+        #timer { font-variant-numeric: tabular-nums; font-size: 1.1rem; margin-left: auto; color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SelfView <span style="font-weight:300; font-size: 0.8em; color: var(--text-muted);">Analyse Non Verbale</span></h1>
+        <div id="timer">00:00</div>
+    </header>
+
+    <main>
+        <section class="video-section">
+            <div class="tabs">
+                <button class="tab-btn active" id="tabLive" onclick="switchTab('live')">Caméra en direct</button>
+                <button class="tab-btn" id="tabPlayback" onclick="switchTab('playback')">Vidéo enregistrée</button>
+            </div>
+
+            <div id="containerLive" class="video-container">
+                <video id="liveVideo" autoplay muted playsinline></video>
+                
+                <!-- Overlay d'attente / Compte à rebours -->
+                <div id="prepOverlay">
+                    <div class="instruction-text">Pouvez-vous vous présenter ?</div>
+                    <div class="countdown-number" id="countdownValue"></div>
+                </div>
+
+                <div class="overlay-status" id="recordingStatus">
+                    <div class="rec-dot"></div>
+                    <span>Enregistrement</span>
+                </div>
+            </div>
+
+            <div id="containerPlayback" class="video-container hidden">
+                <video id="playbackVideo" controls playsinline></video>
+            </div>
+
+            <div class="controls">
+                <div id="controlsLive" style="display: contents;">
+                    <button id="btnRecord" class="btn-record" onclick="initiateRecordingSequence()">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        Enregistrer
+                    </button>
+                </div>
+
+                <div id="controlsPlayback" style="display: none; gap: 1rem;">
+                    <button id="btnMute" class="btn-mute" onclick="toggleMute()">
+                        <svg id="iconMute" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+                        <span id="txtMute">Couper le son</span>
+                    </button>
+                    <a id="downloadLink" style="text-decoration: none;">
+                        <button class="btn-download">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Télécharger
+                        </button>
+                    </a>
+                    <button class="btn-record" onclick="deleteRecording()">
+                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                         Supprimer
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <aside class="instructions-card">
+            <h2>Analyse Non Verbale</h2>
+            <h3>Objectif</h3>
+            <p style="margin-bottom: 1rem; color: var(--text-main);">Prendre conscience de son image.</p>
+            <h3>Consigne</h3>
+            <p style="margin-bottom: 1rem; color: var(--text-main);">Filmez votre présentation. Regardez la vidéo <strong>en coupant le son</strong> pour analyser uniquement :</p>
+            <ul class="checklist">
+                <li><strong>Le regard :</strong> Fuyant ou fixe ?</li>
+                <li><strong>La posture :</strong> Droite ? Avachie ?</li>
+                <li><strong>Les tics :</strong> Jouer avec ses cheveux, un stylo ?</li>
+                <li><strong>La fluidité :</strong> Mouvements saccadés ou fluides ?</li>
+            </ul>
+        </aside>
+    </main>
+
+    <div id="toast">Message</div>
+
+    <script>
+        // Variables
+        let mediaStream;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let recordedBlob = null;
+        let timerInterval;
+        let seconds = 0;
+        let synth = window.speechSynthesis;
+        let bestFrenchVoice = null;
+
+        // DOM Elements
+        const liveVideo = document.getElementById('liveVideo');
+        const playbackVideo = document.getElementById('playbackVideo');
+        const btnRecord = document.getElementById('btnRecord');
+        const prepOverlay = document.getElementById('prepOverlay');
+        const countdownValue = document.getElementById('countdownValue');
+        const timerDisplay = document.getElementById('timer');
+        // ... autres éléments ...
+
+        // 1. Initialisation des voix (Chargement asynchrone pour Chrome)
+        function loadVoices() {
+            const voices = synth.getVoices();
+            // On cherche une voix française spécifique (Google ou Microsoft) pour la qualité
+            bestFrenchVoice = voices.find(v => v.lang.includes('fr') && (v.name.includes('Google') || v.name.includes('Microsoft'))) 
+                            || voices.find(v => v.lang.includes('fr'));
+        }
+
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices(); // Tentative immédiate
+
+        // 2. Initialisation Caméra
+        async function initCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                liveVideo.srcObject = mediaStream;
+            } catch (err) {
+                console.error("Erreur caméra:", err);
+                showToast("Erreur : Accès caméra refusé.");
+            }
+        }
+
+        // 3. Nouvelle fonction de séquence d'enregistrement
+        async function initiateRecordingSequence() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopRecording(); // Si déjà en cours, on arrête
+                return;
+            }
+
+            // Préparation de l'UI
+            btnRecord.disabled = true; // Empêcher le double clic
+            prepOverlay.classList.add('active'); // Afficher l'overlay
+            countdownValue.textContent = ""; // Cacher le chiffre
+
+            // Texte à dire
+            const textToSay = "Pouvez-vous vous présenter ?";
+            
+            // Configuration de la voix pour qu'elle soit humaine/naturelle
+            const utterance = new SpeechSynthesisUtterance(textToSay);
+            utterance.lang = 'fr-FR';
+            utterance.rate = 0.9; // Un peu plus lent pour bien articuler
+            utterance.pitch = 1;
+            if (bestFrenchVoice) utterance.voice = bestFrenchVoice;
+
+            // Promesse qui se résout quand la voix a fini
+            const speechPromise = new Promise((resolve) => {
+                utterance.onend = resolve;
+                utterance.onerror = resolve; // On continue même s'il y a une erreur audio
+                synth.speak(utterance);
+            });
+
+            // Attendre la fin de la phrase (environ 2 secondes)
+            await speechPromise;
+            
+            // Petite pause naturelle après la phrase
+            await new Promise(r => setTimeout(r, 800));
+
+            // Lancer le compte à rebours
+            await runCountdown();
+
+            // Cacher l'overlay
+            prepOverlay.classList.remove('active');
+            btnRecord.disabled = false;
+
+            // Démarrer l'enregistrement réel
+            startRecording();
+        }
+
+        // Fonction de compte à rebours
+        function runCountdown() {
+            return new Promise(resolve => {
+                let count = 3;
+                countdownValue.textContent = count;
+                
+                const interval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownValue.textContent = count;
+                        // Re-déclencher l'animation CSS
+                        countdownValue.style.animation = 'none';
+                        countdownValue.offsetHeight; /* trigger reflow */
+                        countdownValue.style.animation = 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    } else {
+                        clearInterval(interval);
+                        countdownValue.textContent = "";
+                        resolve();
+                    }
+                }, 1000); // 1 seconde par chiffre
+            });
+        }
+
+        // 4. Enregistrement (Logique standard)
+        function startRecording() {
+            recordedChunks = [];
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
+                             ? 'video/webm;codecs=vp9' 
+                             : 'video/webm';
+
+            mediaRecorder = new MediaRecorder(mediaStream, { mimeType });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) recordedChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                const videoURL = URL.createObjectURL(recordedBlob);
+                playbackVideo.src = videoURL;
+                document.getElementById('downloadLink').href = videoURL;
+                document.getElementById('downloadLink').download = `analyse-${new Date().toISOString().slice(0,10)}.webm`;
+                showToast("Enregistrement terminé !");
+                switchTab('playback');
+            };
+
+            mediaRecorder.start();
+
+            // UI Mise à jour
+            btnRecord.innerHTML = `<div style="width:10px; height:10px; background:white; border-radius:50%;"></div> Arrêter`;
+            btnRecord.classList.add('recording');
+            document.getElementById('recordingStatus').classList.add('visible');
+            startTimer();
+        }
+
+        function stopRecording() {
+            if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                
+                btnRecord.innerHTML = `
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Enregistrer
+                `;
+                btnRecord.classList.remove('recording');
+                document.getElementById('recordingStatus').classList.remove('visible');
+                stopTimer();
+            }
+        }
+
+        // Utilitaires Timer
+        function startTimer() {
+            seconds = 0; timerInterval = setInterval(() => {
+                seconds++; 
+                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const secs = (seconds % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+        function stopTimer() { clearInterval(timerInterval); }
+
+        // Gestion Onglets
+        function switchTab(tab) {
+            const cLive = document.getElementById('containerLive');
+            const cPlay = document.getElementById('containerPlayback');
+            const tLive = document.getElementById('tabLive');
+            const tPlay = document.getElementById('tabPlayback');
+            const ctrlsLive = document.getElementById('controlsLive');
+            const ctrlsPlay = document.getElementById('controlsPlayback');
+
+            if (tab === 'live') {
+                cLive.classList.remove('hidden'); cPlay.classList.add('hidden');
+                ctrlsLive.style.display = 'contents'; ctrlsPlay.style.display = 'none';
+                tLive.classList.add('active'); tPlay.classList.remove('active');
+                playbackVideo.pause();
+            } else {
+                cLive.classList.add('hidden'); cPlay.classList.remove('hidden');
+                ctrlsLive.style.display = 'none'; ctrlsPlay.style.display = 'flex';
+                tLive.classList.remove('active'); tPlay.classList.add('active');
+            }
+        }
+
+        // Bouton Mute (pour l'analyse)
+        function toggleMute() {
+            const pbVideo = document.getElementById('playbackVideo');
+            const btnMute = document.getElementById('btnMute');
+            const txt = document.getElementById('txtMute');
+            const icon = document.getElementById('iconMute');
+            
+            if (pbVideo.muted) {
+                pbVideo.muted = false;
+                txt.textContent = "Couper le son";
+                btnMute.classList.remove('muted');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />';
+            } else {
+                pbVideo.muted = true;
+                txt.textContent = "Réactiver le son";
+                btnMute.classList.add('muted');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />';
+            }
+        }
+
+        function deleteRecording() {
+            if(confirm("Supprimer la vidéo ?")) {
+                recordedBlob = null;
+                document.getElementById('playbackVideo').src = "";
+                document.getElementById('downloadLink').href = "";
+                switchTab('live');
+                showToast("Vidéo supprimée.");
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.textContent = msg; t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        }
+
+        window.addEventListener('DOMContentLoaded', initCamera);
+    </script>
+</body>
+</html>
